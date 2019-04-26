@@ -16,11 +16,11 @@ stage_2_resources = vessel.resources_in_decouple_stage(pyargs('stage',2,'cumulat
 
 pad_position = vessel.position(orbit.body.reference_frame);
 pad_ref_frame = body.reference_frame.create_relative(orbit.body.reference_frame, pad_position);
-launch_origin_ref_frame = body.reference_frame.create_hybrid(pad_ref_frame, vessel.reference_frame);
+launch_origin_ref_frame = body.reference_frame.create_relative(pad_ref_frame, py.tuple([0 0 0]), vessel.rotation(pad_ref_frame));
 
 xLine = conn.drawing.add_line(py.tuple([0 0 0]), py.tuple([5 0 0]), launch_origin_ref_frame);
-yLine = conn.drawing.add_line(py.tuple([0 0 0]), py.tuple([5 0 0]), launch_origin_ref_frame);
-zLine = conn.drawing.add_line(py.tuple([0 0 0]), py.tuple([5 0 0]), launch_origin_ref_frame);
+yLine = conn.drawing.add_line(py.tuple([0 0 0]), py.tuple([0 5 0]), launch_origin_ref_frame);
+zLine = conn.drawing.add_line(py.tuple([0 0 0]), py.tuple([0 0 5]), launch_origin_ref_frame);
 xLine.color = py.tuple([1 0 0]);
 yLine.color = py.tuple([0 1 0]);
 zLine.color = py.tuple([0 0 1]);
@@ -30,10 +30,17 @@ turn_start_altitude = 250;
 turn_end_altitude = 45000;
 target_altitude = 150000;
 
+figure;
+xlim([0 100000]);
+ylim([0 100000]);
+xVals = [];
+yVals = [];
+
 control.sas = false;
 control.rcs = false;
 control.throttle = 1.0;
 
+ap.reference_frame = vessel.surface_reference_frame;
 ap.engage();
 ap.target_pitch_and_heading(90,90);
 control.activate_next_stage();
@@ -62,7 +69,15 @@ while true
     if getApoapsis(orbit) > target_altitude * 0.9
        sprintf('Approaching targe apoapsis')
        break;
-    end
+    end 
+    
+    position = cell(vessel.position(launch_origin_ref_frame));
+    xVals = [xVals, position{1}];
+    yVals = [yVals, position{2}];
+    plot(xVals, yVals, '-r');
+    drawnow;
+    xlim([0 100000]);
+    ylim([0 100000]);
 end
 
 control.throttle = 0.25;
