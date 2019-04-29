@@ -49,8 +49,8 @@ srbs_separated = false;
 turn_angle = 0.0;
 
 while true
-    if getAltitude(flight) > turn_start_altitude && getAltitude(flight) < turn_end_altitude
-        frac = ((getAltitude(flight) - turn_start_altitude) / (turn_end_altitude - turn_start_altitude));
+    if flight.mean_altitude > turn_start_altitude && flight.mean_altitude < turn_end_altitude
+        frac = ((flight.mean_altitude - turn_start_altitude) / (turn_end_altitude - turn_start_altitude));
         new_turn_angle = frac * 90;
         if abs(new_turn_angle - turn_angle) > 0.5
            turn_angle = new_turn_angle;
@@ -59,14 +59,14 @@ while true
     end
     
     if srbs_separated == false
-        if getSolidFuel(stage_2_resources) < 0.1
+        if stage_2_resources.amount('SolidFuel') < 0.1
             control.activate_next_stage();
             srbs_separated = true;
             sprintf('SRBs separated')
         end
     end
     
-    if getApoapsis(orbit) > target_altitude * 0.9
+    if orbit.apoapsis_altitude > target_altitude * 0.9
        sprintf('Approaching targe apoapsis')
        break;
     end 
@@ -74,14 +74,15 @@ while true
     position = cell(vessel.position(launch_origin_ref_frame));
     xVals = [xVals, position{1}];
     yVals = [yVals, position{2}];
-    plot(xVals, yVals, '-r');
+    plot(xVals, yVals, '-r', 'linewidth', 3);
+    xlim([0 60000]);
+    ylim([0 60000]);
     drawnow;
-    xlim([0 100000]);
-    ylim([0 100000]);
+    
 end
 
 control.throttle = 0.25;
-while getApoapsis(orbit) < target_altitude 
+while orbit.apoapsis_altitude < target_altitude 
 end
 
 sprintf('Target apoapsis reached')
@@ -97,7 +98,7 @@ a2 = r;
 v1 = sqrt(mu * ((2 / r) - (1 / a1)));
 v2 = sqrt(mu * ((2 / r) - (1 / a2)));
 delta_v = v2 - v1;
-nodeTime = getUt(space_center) + orbit.time_to_apoapsis;
+nodeTime = space_center.ut + orbit.time_to_apoapsis;
 node = control.add_node(pyargs('ut',nodeTime,'prograde',delta_v));
 
 F = vessel.available_thrust;
@@ -113,7 +114,7 @@ ap.target_direction = [0 1 0];
 vessel.auto_pilot.wait()
 
 sprintf('Waiting until circularization burn')
-burn_ut = getUt(space_center) + orbit.time_to_apoapsis - (burn_time / 2);
+burn_ut = space_center.ut + orbit.time_to_apoapsis - (burn_time / 2);
 lead_time = 5;
 space_center.warp_to(pyargs('ut',burn_ut - lead_time));
 
@@ -138,23 +139,3 @@ end
 control.throttle = 0.0;
 node.remove();
 sprintf('Launch complete')
-%% CLEAN UP
-%conn.close()
-%clear
-
-%% Getters
-function [altitude1] = getAltitude(flight)
-    altitude1 = flight.mean_altitude;
-end
-
-function [apoapsis] = getApoapsis(orbit)
-    apoapsis = orbit.apoapsis_altitude;
-end
-
-function [srb_fuel] = getSolidFuel(stage_resources)
-    srb_fuel = stage_resources.amount('SolidFuel');
-end
-
-function [ut] = getUt(space_center)
-    ut = space_center.ut;
-end
